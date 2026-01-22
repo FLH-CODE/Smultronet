@@ -163,8 +163,45 @@
         </div>
     </div>
     <h2>Total: <span class="total-Occupancy" id="totalOccupancy">0%</span> <span class="calculated-total" id="calculatedTotal">0</span></h2>
+    <div style="margin-left:150px; margin-top:30px;">
+        <button id="googleSignInBtn" style="padding:10px 20px; font-size:16px; cursor:pointer;">Sign in with Google</button>
+        <div id="googleAuthStatus" style="margin-top:10px; color:green;"></div>
+    </div>
 
     <script>
+            // Google OAuth 2.0 setup
+            function onGoogleSignIn(googleUser) {
+                const profile = googleUser.getBasicProfile();
+                document.getElementById('googleAuthStatus').textContent = `Signed in as: ${profile.getEmail()}`;
+            }
+
+            function startGoogleOAuth() {
+                const clientId = '957055705499-reu0edr0jq4c99cftgl0ael84mjpsauf.apps.googleusercontent.com';
+                const redirectUri = 'https://flh-code.github.io/Smultronet/'; // main page
+                const scope = 'email profile';
+                const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
+                window.location.href = authUrl;
+            }
+
+            document.getElementById('googleSignInBtn').addEventListener('click', startGoogleOAuth);
+
+            // Check for OAuth response in URL
+            window.addEventListener('DOMContentLoaded', function() {
+                const hash = window.location.hash;
+                if (hash.includes('access_token')) {
+                    const params = new URLSearchParams(hash.substring(1));
+                    const accessToken = params.get('access_token');
+                    if (accessToken) {
+                        fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', {
+                            headers: { Authorization: 'Bearer ' + accessToken }
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            document.getElementById('googleAuthStatus').textContent = `Signed in as: ${data.email}`;
+                        });
+                    }
+                }
+            });
         const maxValues = [329, 550, 700, 1500];
 
         function updateValue(sliderNumber) {
