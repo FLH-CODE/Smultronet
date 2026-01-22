@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OAuth2 Callback</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        #status { margin-top: 20px; color: green; }
+    </style>
+</head>
+<body>
+    <h2>Google OAuth2 Callback</h2>
+    <div id="status">Processing authentication...</div>
+    <script>
+        // Parse the URL hash for access_token
+        const hash = window.location.hash;
+        if (hash.includes('access_token')) {
+            const params = new URLSearchParams(hash.substring(1));
+            const accessToken = params.get('access_token');
+            if (accessToken) {
+                fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', {
+                    headers: { Authorization: 'Bearer ' + accessToken }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('status').textContent = `Signed in as: ${data.email}`;
+                    // Optionally, redirect back to main page with token
+                    // window.location.href = `/Smultronet/?token=${accessToken}`;
+                })
+                .catch(() => {
+                    document.getElementById('status').textContent = 'Failed to fetch user info.';
+                });
+            } else {
+                document.getElementById('status').textContent = 'No access token found.';
+            }
+        } else {
+            document.getElementById('status').textContent = 'No OAuth response detected.';
+        }
+    </script>
+</body>
+</html>
