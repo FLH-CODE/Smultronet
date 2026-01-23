@@ -166,45 +166,51 @@
     <div style="margin-left:150px; margin-top:30px;">
         <button id="googleSignInBtn" style="padding:10px 20px; font-size:16px; cursor:pointer;">Sign in with Google</button>
         <div id="googleAuthStatus" style="margin-top:10px; color:green;"></div>
+        <button id="logSlidersBtn" style="padding:10px 20px; font-size:16px; cursor:pointer; margin-left:20px;">Log Sliders</button>
+        <div id="logStatus" style="margin-top:10px; color:blue;"></div>
     </div>
 
     <script>
-            // Google OAuth 2.0 setup
-            function onGoogleSignIn(googleUser) {
-                const profile = googleUser.getBasicProfile();
-                document.getElementById('googleAuthStatus').textContent = `Signed in as: ${profile.getEmail()}`;
+    document.addEventListener('DOMContentLoaded', function() {
+        // Google OAuth 2.0 setup
+        function onGoogleSignIn(googleUser) {
+            const profile = googleUser.getBasicProfile();
+            document.getElementById('googleAuthStatus').textContent = `Signed in as: ${profile.getEmail()}`;
+        }
+
+        function startGoogleOAuth() {
+            const clientId = '957055705499-jn3edpa6i150s1g8mdvsi7rq7m659abn.apps.googleusercontent.com';
+            const redirectUri = 'https://flh-code.github.io/Smultronet/'; // main page
+            const scope = 'email profile';
+            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
+            window.location.href = authUrl;
+        }
+
+        document.getElementById('googleSignInBtn').addEventListener('click', startGoogleOAuth);
+
+        // Track login state
+        let isLoggedIn = false;
+        let userEmail = '';
+        const hash = window.location.hash;
+        if (hash.includes('access_token')) {
+            const params = new URLSearchParams(hash.substring(1));
+            const accessToken = params.get('access_token');
+            if (accessToken) {
+                fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', {
+                    headers: { Authorization: 'Bearer ' + accessToken }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('googleAuthStatus').textContent = `Signed in as: ${data.email}`;
+                    isLoggedIn = true;
+                    userEmail = data.email;
+                });
             }
+        }
 
-            function startGoogleOAuth() {
-                const clientId = '957055705499-jn3edpa6i150s1g8mdvsi7rq7m659abn.apps.googleusercontent.com';
-                const redirectUri = 'https://flh-code.github.io/Smultronet/'; // main page
-                const scope = 'email profile';
-                const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
-                window.location.href = authUrl;
-            }
-
-            document.getElementById('googleSignInBtn').addEventListener('click', startGoogleOAuth);
-
-            // Check for OAuth response in URL
-            window.addEventListener('DOMContentLoaded', function() {
-                const hash = window.location.hash;
-                if (hash.includes('access_token')) {
-                    const params = new URLSearchParams(hash.substring(1));
-                    const accessToken = params.get('access_token');
-                    if (accessToken) {
-                        fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', {
-                            headers: { Authorization: 'Bearer ' + accessToken }
-                        })
-                        .then(res => res.json())
-                        .then(data => {
-                            document.getElementById('googleAuthStatus').textContent = `Signed in as: ${data.email}`;
-                        });
-                    }
-                }
-            });
         const maxValues = [329, 550, 700, 1500];
 
-        function updateValue(sliderNumber) {
+        window.updateValue = function(sliderNumber) {
             const slider1 = document.getElementById('slider1');
             const slider2 = document.getElementById('slider2');
             const slider3 = document.getElementById('slider3');
@@ -282,6 +288,41 @@
             slider.addEventListener('input', () => updateSliderBackground(slider));
             updateSliderBackground(slider); // Initialize background on page load
         });
+
+        document.getElementById('logSlidersBtn').addEventListener('click', function() {
+            if (!isLoggedIn) {
+                document.getElementById('logStatus').textContent = 'Error: You must be signed in with Google to log slider values.';
+                return;
+            }
+            const data = {
+                slider1: document.getElementById('slider1').value,
+                slider2: document.getElementById('slider2').value,
+                slider3: document.getElementById('slider3').value,
+                slider4: document.getElementById('slider4').value,
+                calculated1: document.getElementById('calculated1').textContent,
+                calculated2: document.getElementById('calculated2').textContent,
+                calculated3: document.getElementById('calculated3').textContent,
+                calculated4: document.getElementById('calculated4').textContent,
+                totalOccupancy: document.getElementById('totalOccupancy').textContent,
+                calculatedTotal: document.getElementById('calculatedTotal').textContent,
+                userEmail: userEmail
+            };
+            // TODO: Replace with your deployed Google Apps Script Web App URL
+            const webAppUrl = 'https://script.google.com/macros/s/AKfycbwYeeYkd8xK1lNfmsYbGPzBZfLMDBUZyx2P2y-e7zM2N7QjKxUm7sfwoxBm138qiZSy/exec';
+            fetch(webAppUrl, {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.text())
+            .then(result => {
+                document.getElementById('logStatus').textContent = 'Logged: ' + result;
+            })
+            .catch(error => {
+                document.getElementById('logStatus').textContent = 'Error: ' + error;
+            });
+        });
+    });
     </script>
 </body>
 </html>
